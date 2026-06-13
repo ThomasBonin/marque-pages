@@ -46,8 +46,14 @@
             <td>{{ item.annee or '—' }}</td>
           </tr>
           <tr>
-            <th class="text-muted">Thème</th>
-            <td>{% if item.theme %}<span class="badge badge-theme text-white">{{ item.theme }}</span>{% else %}—{% endif %}</td>
+            <th class="text-muted">Thèmes</th>
+            <td>
+              {% if item.themes %}
+                {% for t in parse_themes(item.themes) %}
+                  <span class="badge badge-theme text-white">{{ t }}</span>
+                {% endfor %}
+              {% else %}—{% endif %}
+            </td>
           </tr>
           <tr>
             <th class="text-muted">Pays</th>

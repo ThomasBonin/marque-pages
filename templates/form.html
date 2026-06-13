@@ -47,9 +47,11 @@
                    value="{{ item.editeur if item else '' }}">
           </div>
           <div class="col-12">
-            <label class="form-label">Thème</label>
-            <input type="text" name="theme" class="form-control" placeholder="ex: Paysage, Animal, Art..."
-                   value="{{ item.theme if item else '' }}">
+            <label class="form-label">Thèmes <small class="text-muted">(séparés par des virgules)</small></label>
+            <input type="text" name="themes" id="themesInput" class="form-control"
+                   placeholder="ex: Animal, Nature, Art..."
+                   value="{{ item.themes if item else '' }}">
+            <div id="tagPreview" class="mt-1 d-flex flex-wrap gap-1"></div>
           </div>
           <div class="col-12">
             <label class="form-label">Pays</label>
@@ -85,6 +87,21 @@
 </div>
 
 <script>
+// Aperçu des tags en temps réel
+const themesInput = document.getElementById('themesInput');
+const tagPreview = document.getElementById('tagPreview');
+
+function updateTags() {
+  const tags = themesInput.value.split(',').map(t => t.trim()).filter(t => t);
+  tagPreview.innerHTML = tags.map(t =>
+    `<span class="badge badge-theme text-white">${t}</span>`
+  ).join('');
+}
+if (themesInput) {
+  themesInput.addEventListener('input', updateTags);
+  updateTags();
+}
+
 document.getElementById('mainForm').addEventListener('submit', function() {
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
