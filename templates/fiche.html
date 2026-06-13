@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ item.editeur or 'Marque-page' }} — Collection{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm mb-3">
+      <i class="bi bi-arrow-left"></i> Retour à la galerie
+    </a>
+
+    <div class="card">
+      {% if item.photo_recto or item.photo_verso %}
+        <div class="row g-0">
+          <div class="col-6 text-center p-2" style="background:#e8ddd4">
+            <div class="text-muted small mb-1 fw-semibold">Recto</div>
+            {% if item.photo_recto %}
+              <img src="{{ url_for('static', filename='uploads/' + item.photo_recto) }}"
+                   style="max-height:360px;max-width:100%;object-fit:contain">
+            {% else %}
+              <div class="img-placeholder" style="height:200px;font-size:2.5rem"><i class="bi bi-bookmark"></i></div>
+            {% endif %}
+          </div>
+          <div class="col-6 text-center p-2" style="background:#ddd4c8">
+            <div class="text-muted small mb-1 fw-semibold">Verso</div>
+            {% if item.photo_verso %}
+              <img src="{{ url_for('static', filename='uploads/' + item.photo_verso) }}"
+                   style="max-height:360px;max-width:100%;object-fit:contain">
+            {% else %}
+              <div class="img-placeholder" style="height:200px;background:#ddd4c8;font-size:2.5rem"><i class="bi bi-bookmark-fill"></i></div>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="img-placeholder" style="height:200px">
+          <i class="bi bi-bookmark"></i>
+        </div>
+      {% endif %}
+
+      <div class="card-body">
+        <h4 class="card-title">{{ item.editeur or 'Éditeur inconnu' }}</h4>
+
+        <table class="table table-sm table-borderless">
+          <tr>
+            <th class="text-muted w-50">Année</th>
+            <td>{{ item.annee or '—' }}</td>
+          </tr>
+          <tr>
+            <th class="text-muted">Thème</th>
+            <td>{% if item.theme %}<span class="badge badge-theme text-white">{{ item.theme }}</span>{% else %}—{% endif %}</td>
+          </tr>
+          <tr>
+            <th class="text-muted">Pays</th>
+            <td>{{ item.pays or '—' }}</td>
+          </tr>
+          <tr>
+            <th class="text-muted">État</th>
+            <td>
+              {% if item.etat %}
+                {% set colors = {'Neuf': 'success', 'Très bon': 'success', 'Bon': 'primary', 'Moyen': 'warning', 'Mauvais': 'danger'} %}
+                <span class="badge bg-{{ colors.get(item.etat, 'secondary') }}">{{ item.etat }}</span>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Quantité</th>
+            <td>{{ item.quantite }}</td>
+          </tr>
+          {% if item.notes %}
+          <tr>
+            <th class="text-muted">Notes</th>
+            <td>{{ item.notes }}</td>
+          </tr>
+          {% endif %}
+        </table>
+
+        <div class="d-flex gap-2 mt-3">
+          <a href="{{ url_for('modifier', item_id=item.id) }}" class="btn btn-primary flex-fill">
+            <i class="bi bi-pencil"></i> Modifier
+          </a>
+          <form method="post" action="{{ url_for('supprimer', item_id=item.id) }}"
+                onsubmit="return confirm('Supprimer ce marque-page ?')">
+            <button type="submit" class="btn btn-outline-danger">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

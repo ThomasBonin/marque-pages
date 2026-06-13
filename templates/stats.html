@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Statistiques — Collection{% endblock %}
+{% block content %}
+
+<h4 class="mb-4"><i class="bi bi-bar-chart-fill"></i> Statistiques de la collection</h4>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <div style="font-size:2.5rem;font-weight:700;color:#4a3728">{{ total }}</div>
+      <div class="text-muted small">marque-pages au total</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <div style="font-size:2.5rem;font-weight:700;color:#4a3728">{{ nb_fiches }}</div>
+      <div class="text-muted small">fiches distinctes</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <div style="font-size:2.5rem;font-weight:700;color:#4a3728">{{ par_editeur|length }}</div>
+      <div class="text-muted small">éditeurs référencés</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card p-3 text-center">
+      <div style="font-size:2.5rem;font-weight:700;color:#4a3728">{{ par_pays|length }}</div>
+      <div class="text-muted small">pays représentés</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3">
+      <h6 class="mb-3"><i class="bi bi-palette"></i> Top thèmes</h6>
+      {% for row in par_theme %}
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small text-truncate me-2">{{ row[0] }}</span>
+        <div class="d-flex align-items-center gap-2">
+          <div class="bg-warning rounded" style="height:8px;width:{{ [row[1] * 80 // (par_theme[0][1] or 1), 4]|max }}px"></div>
+          <span class="badge bg-secondary">{{ row[1] }}</span>
+        </div>
+      </div>
+      {% else %}<p class="text-muted small">Aucune donnée</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3">
+      <h6 class="mb-3"><i class="bi bi-building"></i> Top éditeurs</h6>
+      {% for row in par_editeur %}
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small text-truncate me-2">{{ row[0] }}</span>
+        <div class="d-flex align-items-center gap-2">
+          <div class="bg-primary rounded" style="height:8px;width:{{ [row[1] * 80 // (par_editeur[0][1] or 1), 4]|max }}px;opacity:.6"></div>
+          <span class="badge bg-secondary">{{ row[1] }}</span>
+        </div>
+      </div>
+      {% else %}<p class="text-muted small">Aucune donnée</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3">
+      <h6 class="mb-3"><i class="bi bi-globe"></i> Top pays</h6>
+      {% for row in par_pays %}
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small text-truncate me-2">{{ row[0] }}</span>
+        <div class="d-flex align-items-center gap-2">
+          <div class="bg-success rounded" style="height:8px;width:{{ [row[1] * 80 // (par_pays[0][1] or 1), 4]|max }}px;opacity:.7"></div>
+          <span class="badge bg-secondary">{{ row[1] }}</span>
+        </div>
+      </div>
+      {% else %}<p class="text-muted small">Aucune donnée</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3">
+      <h6 class="mb-3"><i class="bi bi-calendar3"></i> Par année</h6>
+      <div style="max-height:300px;overflow-y:auto">
+        {% for row in par_annee %}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small">{{ row[0] }}</span>
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded" style="height:8px;background:#c9956a;width:{{ [row[1] * 80 // (par_annee|map(attribute=1)|max or 1), 4]|max }}px"></div>
+            <span class="badge bg-secondary">{{ row[1] }}</span>
+          </div>
+        </div>
+        {% else %}<p class="text-muted small">Aucune donnée</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} un marque-page{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card p-4">
+      <h4 class="mb-4"><i class="bi bi-bookmark-plus"></i> {{ action }} un marque-page</h4>
+
+      <form method="post" enctype="multipart/form-data" id="mainForm">
+
+        <div class="alert alert-info py-2 px-3 text-center small mb-3">
+          <i class="bi bi-phone-landscape"></i> Prenez les photos en <strong>format paysage</strong> (téléphone à l'horizontale)
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6 text-center">
+            <label class="form-label d-block fw-semibold">Recto</label>
+            {% if item and item.photo_recto %}
+              <img src="{{ item.photo_recto }}" class="img-thumbnail mb-2" style="max-height:120px">
+            {% endif %}
+            <input type="file" name="photo_recto" accept="image/*" capture="environment" class="form-control form-control-sm">
+          </div>
+          <div class="col-6 text-center">
+            <label class="form-label d-block fw-semibold">Verso</label>
+            {% if item and item.photo_verso %}
+              <img src="{{ item.photo_verso }}" class="img-thumbnail mb-2" style="max-height:120px">
+            {% endif %}
+            <input type="file" name="photo_verso" accept="image/*" capture="environment" class="form-control form-control-sm">
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label">Année</label>
+            <input type="text" name="annee" class="form-control" placeholder="ex: 1985"
+                   value="{{ item.annee if item else '' }}" inputmode="numeric">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Quantité</label>
+            <input type="number" name="quantite" class="form-control" min="1"
+                   value="{{ item.quantite if item else 1 }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Éditeur</label>
+            <input type="text" name="editeur" class="form-control" placeholder="Nom de l'éditeur"
+                   value="{{ item.editeur if item else '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Thème</label>
+            <input type="text" name="theme" class="form-control" placeholder="ex: Paysage, Animal, Art..."
+                   value="{{ item.theme if item else '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Pays</label>
+            <input type="text" name="pays" class="form-control" placeholder="Pays d'origine"
+                   value="{{ item.pays if item else '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label">État</label>
+            <select name="etat" class="form-select">
+              <option value="">— Sélectionner —</option>
+              {% for e in ['Neuf', 'Très bon', 'Bon', 'Moyen', 'Mauvais'] %}
+                <option value="{{ e }}" {% if item and item.etat == e %}selected{% endif %}>{{ e }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="3"
+                      placeholder="Remarques, provenance, anecdote...">{{ item.notes if item else '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary flex-fill" id="submitBtn">
+            <i class="bi bi-check-lg"></i> {{ action }}
+          </button>
+          <a href="{{ url_for('fiche', item_id=item.id) if item else url_for('index') }}"
+             class="btn btn-outline-secondary flex-fill">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('mainForm').addEventListener('submit', function() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Envoi en cours...';
+});
+</script>
+
+{% endblock %}
