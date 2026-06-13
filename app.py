@@ -238,6 +238,144 @@ def supprimer(item_id):
     return redirect(url_for("index"))
 
 
+@app.route("/export/pdf")
+def export_pdf():
+    import requests as req
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image as RLImage, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from flask import Response
+    import io as _io
+
+    search = request.args.get("q", "").strip()
+    annee = request.args.get("annee", "").strip()
+    editeur = request.args.get("editeur", "").strip()
+    theme = request.args.get("theme", "").strip()
+    pays = request.args.get("pays", "").strip()
+    etat = request.args.get("etat", "").strip()
+
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            conditions = []
+            params = []
+            if search:
+                conditions.append("(editeur ILIKE %s OR themes ILIKE %s OR pays ILIKE %s OR notes ILIKE %s)")
+                params += [f"%{search}%"] * 4
+            if annee:
+                conditions.append("annee = %s"); params.append(annee)
+            if editeur:
+                conditions.append("editeur ILIKE %s"); params.append(f"%{editeur}%")
+            if theme:
+                conditions.append("themes ILIKE %s"); params.append(f"%{theme}%")
+            if pays:
+                conditions.append("pays ILIKE %s"); params.append(f"%{pays}%")
+            if etat:
+                conditions.append("etat = %s"); params.append(etat)
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            cur.execute(f"SELECT * FROM marque_pages {where} ORDER BY annee DESC, editeur ASC LIMIT 100", params)
+            rows = cur.fetchall()
+
+    buf = _io.BytesIO()
+    styles = getSampleStyleSheet()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
+    story = []
+    W = 8.5*cm
+
+    def fetch_image(url, width):
+        try:
+            r = req.get(url, timeout=8)
+            img_buf = _io.BytesIO(r.content)
+            img = RLImage(img_buf, width=width, height=width*0.6)
+            return img
+        except Exception:
+            return Paragraph("(photo indisponible)", styles["Normal"])
+
+    for item in rows:
+        # Photos
+        recto = fetch_image(item["photo_recto"], W) if item["photo_recto"] else Paragraph("—", styles["Normal"])
+        verso = fetch_image(item["photo_verso"], W) if item["photo_verso"] else Paragraph("—", styles["Normal"])
+
+        # Infos
+        infos = f"""<b>{item['editeur'] or '—'}</b><br/>
+Année : {item['annee'] or '—'}<br/>
+Thèmes : {item['themes'] or '—'}<br/>
+Pays : {item['pays'] or '—'}<br/>
+État : {item['etat'] or '—'} | Qté : {item['quantite']}<br/>
+{('<i>' + item['notes'] + '</i>') if item['notes'] else ''}"""
+
+        data = [
+            [recto, verso],
+            [Paragraph(infos, styles["Normal"]), ""]
+        ]
+        t = Table(data, colWidths=[W, W])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f5f0eb")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#c9956a")),
+            ("INNERGRID", (0, 0), (-1, 0), 0.5, colors.HexColor("#ddd")),
+            ("SPAN", (0, 1), (1, 1)),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("PADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 0.4*cm))
+
+    doc.build(story)
+    buf.seek(0)
+    return Response(buf, mimetype="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=marque-pages.pdf"})
+
+
+@app.route("/export")
+def export():
+    import csv
+    import io as _io
+    from flask import Response
+
+    search = request.args.get("q", "").strip()
+    annee = request.args.get("annee", "").strip()
+    editeur = request.args.get("editeur", "").strip()
+    theme = request.args.get("theme", "").strip()
+    pays = request.args.get("pays", "").strip()
+    etat = request.args.get("etat", "").strip()
+
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            conditions = []
+            params = []
+            if search:
+                conditions.append("(editeur ILIKE %s OR themes ILIKE %s OR pays ILIKE %s OR notes ILIKE %s)")
+                params += [f"%{search}%"] * 4
+            if annee:
+                conditions.append("annee = %s"); params.append(annee)
+            if editeur:
+                conditions.append("editeur ILIKE %s"); params.append(f"%{editeur}%")
+            if theme:
+                conditions.append("themes ILIKE %s"); params.append(f"%{theme}%")
+            if pays:
+                conditions.append("pays ILIKE %s"); params.append(f"%{pays}%")
+            if etat:
+                conditions.append("etat = %s"); params.append(etat)
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+            cur.execute(f"SELECT annee, editeur, themes, pays, etat, quantite, notes FROM marque_pages {where} ORDER BY annee DESC, editeur ASC", params)
+            rows = cur.fetchall()
+
+    buf = _io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Année", "Éditeur", "Thèmes", "Pays", "État", "Quantité", "Notes"])
+    for r in rows:
+        writer.writerow([r["annee"], r["editeur"], r["themes"], r["pays"], r["etat"], r["quantite"], r["notes"]])
+
+    buf.seek(0)
+    return Response(
+        "﻿" + buf.getvalue(),  # BOM pour Excel
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=marque-pages.csv"}
+    )
+
+
 @app.route("/stats")
 def stats():
     with get_db() as conn:

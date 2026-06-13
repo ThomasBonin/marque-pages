@@ -3,3 +3,5 @@ cloudinary>=1.36
 gunicorn>=21.0
 pillow>=10.0
 psycopg2-binary>=2.9
+reportlab>=4.0
+requests>=2.31
