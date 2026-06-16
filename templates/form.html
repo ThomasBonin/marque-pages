@@ -118,15 +118,69 @@ if (themesInput) {
   updateTags();
 }
 
-document.getElementById('mainForm').addEventListener('submit', function() {
+const MAX_SIZE_MB = 3;
+
+function compressFile(file) {
+  return new Promise(function(resolve) {
+    if (!file || file.size < MAX_SIZE_MB * 1024 * 1024) { resolve(file); return; }
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        try {
+          let w = img.width, h = img.height;
+          const ratio = Math.min(1200/w, 1200/h, 1);
+          w = Math.round(w*ratio); h = Math.round(h*ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(function(blob) {
+            if (blob) resolve(new File([blob], file.name, {type:'image/jpeg'}));
+            else resolve(file);
+          }, 'image/jpeg', 0.80);
+        } catch(e) { resolve(file); }
+      };
+      img.src = url;
+    } catch(e) { resolve(file); }
+  });
+}
+
+document.getElementById('mainForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Envoi en cours...';
+
+  const form = e.target;
+  const data = new FormData(form);
+
+  // Compresser uniquement si > 3 Mo
+  const rectoInput = document.getElementById('fileRecto');
+  const versoInput = document.getElementById('fileVerso');
+  if (rectoInput.files[0]) {
+    const compressed = await compressFile(rectoInput.files[0]);
+    data.set('photo_recto', compressed);
+  }
+  if (versoInput.files[0]) {
+    const compressed = await compressFile(versoInput.files[0]);
+    data.set('photo_verso', compressed);
+  }
+
   setTimeout(function() {
-    if (btn.disabled) {
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Traitement photo... (peut prendre 30-60s)';
-    }
+    if (btn.disabled) btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Upload en cours... (patientez)';
   }, 8000);
+
+  try {
+    const resp = await fetch(window.location.href, {method:'POST', body:data});
+    if (resp.redirected) window.location.href = resp.url;
+    else window.location.href = '/';
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Réessayer';
+    alert('Erreur réseau. Vérifiez votre connexion et réessayez.');
+  }
 });
 </script>
 
