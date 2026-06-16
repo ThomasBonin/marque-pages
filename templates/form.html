@@ -21,7 +21,7 @@
             {% endif %}
             <label class="btn btn-outline-secondary w-100">
               <i class="bi bi-camera"></i> Choisir
-              <input type="file" name="photo_recto" accept="image/*" class="d-none" id="fileRecto">
+              <input type="file" name="photo_recto" accept="image/*" capture="environment" class="d-none" id="fileRecto">
             </label>
             <small id="labelRecto" class="text-muted d-block text-truncate mt-1">Aucun fichier</small>
           </div>
@@ -32,7 +32,7 @@
             {% endif %}
             <label class="btn btn-outline-secondary w-100">
               <i class="bi bi-camera"></i> Choisir
-              <input type="file" name="photo_verso" accept="image/*" class="d-none" id="fileVerso">
+              <input type="file" name="photo_verso" accept="image/*" capture="environment" class="d-none" id="fileVerso">
             </label>
             <small id="labelVerso" class="text-muted d-block text-truncate mt-1">Aucun fichier</small>
           </div>
