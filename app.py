@@ -292,13 +292,13 @@ def export_pdf():
         except Exception:
             return Paragraph("(photo indisponible)", styles["Normal"])
 
-    for item in rows:
+    for num, item in enumerate(rows, 1):
         # Photos
         recto = fetch_image(item["photo_recto"], W) if item["photo_recto"] else Paragraph("—", styles["Normal"])
         verso = fetch_image(item["photo_verso"], W) if item["photo_verso"] else Paragraph("—", styles["Normal"])
 
         # Infos
-        infos = f"""<b>{item['editeur'] or '—'}</b><br/>
+        infos = f"""<b>#{num} — {item['editeur'] or '—'}</b><br/>
 Année : {item['annee'] or '—'}<br/>
 Thèmes : {item['themes'] or '—'}<br/>
 Pays : {item['pays'] or '—'}<br/>
