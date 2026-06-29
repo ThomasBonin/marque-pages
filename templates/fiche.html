@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ item.editeur or 'Marque-page' }} — Collection{% endblock %}
+{% block title %}{{ item.nom or 'Chat' }} — Chats du voisinage{% endblock %}
 {% block content %}
 
 <div class="row justify-content-center">
@@ -10,67 +10,49 @@
     </a>
 
     <div class="card">
-      {% if item.photo_recto or item.photo_verso %}
-        <div class="row g-0">
-          <div class="col-6 text-center p-2" style="background:#e8ddd4">
-            <div class="text-muted small mb-1 fw-semibold">Recto</div>
-            {% if item.photo_recto %}
-              <img src="{{ item.photo_recto }}"
-                   style="max-height:360px;max-width:100%;object-fit:contain">
-            {% else %}
-              <div class="img-placeholder" style="height:200px;font-size:2.5rem"><i class="bi bi-bookmark"></i></div>
-            {% endif %}
-          </div>
-          <div class="col-6 text-center p-2" style="background:#ddd4c8">
-            <div class="text-muted small mb-1 fw-semibold">Verso</div>
-            {% if item.photo_verso %}
-              <img src="{{ item.photo_verso }}"
-                   style="max-height:360px;max-width:100%;object-fit:contain">
-            {% else %}
-              <div class="img-placeholder" style="height:200px;background:#ddd4c8;font-size:2.5rem"><i class="bi bi-bookmark-fill"></i></div>
-            {% endif %}
-          </div>
-        </div>
+      {% if item.photo %}
+        <img src="{{ item.photo }}" class="card-img-top" style="max-height:400px;object-fit:contain;background:#c8e6c9">
       {% else %}
-        <div class="img-placeholder" style="height:200px">
-          <i class="bi bi-bookmark"></i>
-        </div>
+        <div class="img-placeholder"><i class="bi bi-emoji-smile"></i></div>
       {% endif %}
 
       <div class="card-body">
-        <h4 class="card-title">{{ item.editeur or 'Éditeur inconnu' }}</h4>
+        <h4 class="card-title">{{ item.nom or '(sans nom)' }}</h4>
 
         <table class="table table-sm table-borderless">
           <tr>
-            <th class="text-muted w-50">Année</th>
-            <td>{{ item.annee or '—' }}</td>
+            <th class="text-muted w-50">Couleur / Robe</th>
+            <td>{{ item.couleur or '—' }}</td>
           </tr>
           <tr>
-            <th class="text-muted">Thèmes</th>
+            <th class="text-muted">Race</th>
+            <td>{{ item.race or '—' }}</td>
+          </tr>
+          <tr>
+            <th class="text-muted">Sexe</th>
+            <td>{{ item.sexe or '—' }}</td>
+          </tr>
+          <tr>
+            <th class="text-muted">Propriétaire</th>
+            <td>{{ item.proprietaire or '—' }}</td>
+          </tr>
+          <tr>
+            <th class="text-muted">Téléphone</th>
             <td>
-              {% if item.themes %}
-                {% for t in parse_themes(item.themes) %}
-                  <span class="badge badge-theme text-white">{{ t }}</span>
+              {% if item.tel_proprietaire %}
+                <a href="tel:{{ item.tel_proprietaire }}">{{ item.tel_proprietaire }}</a>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Comportement</th>
+            <td>
+              {% if item.comportements %}
+                {% for t in parse_tags(item.comportements) %}
+                  <span class="badge badge-tag text-white">{{ t }}</span>
                 {% endfor %}
               {% else %}—{% endif %}
             </td>
-          </tr>
-          <tr>
-            <th class="text-muted">Pays</th>
-            <td>{{ item.pays or '—' }}</td>
-          </tr>
-          <tr>
-            <th class="text-muted">État</th>
-            <td>
-              {% if item.etat %}
-                {% set colors = {'Neuf': 'success', 'Très bon': 'success', 'Bon': 'primary', 'Moyen': 'warning', 'Mauvais': 'danger'} %}
-                <span class="badge bg-{{ colors.get(item.etat, 'secondary') }}">{{ item.etat }}</span>
-              {% else %}—{% endif %}
-            </td>
-          </tr>
-          <tr>
-            <th class="text-muted">Quantité</th>
-            <td>{{ item.quantite }}</td>
           </tr>
           {% if item.notes %}
           <tr>
@@ -85,7 +67,7 @@
             <i class="bi bi-pencil"></i> Modifier
           </a>
           <form method="post" action="{{ url_for('supprimer', item_id=item.id) }}"
-                onsubmit="return confirm('Supprimer ce marque-page ?')">
+                onsubmit="return confirm('Supprimer ce chat ?')">
             <button type="submit" class="btn btn-outline-danger">
               <i class="bi bi-trash"></i>
             </button>

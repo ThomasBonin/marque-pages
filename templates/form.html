@@ -1,84 +1,72 @@
 {% extends "base.html" %}
-{% block title %}{{ action }} un marque-page{% endblock %}
+{% block title %}{{ action }} un chat{% endblock %}
 {% block content %}
 
 <div class="row justify-content-center">
   <div class="col-12 col-md-8 col-lg-6">
     <div class="card p-4">
-      <h4 class="mb-4"><i class="bi bi-bookmark-plus"></i> {{ action }} un marque-page</h4>
+      <h4 class="mb-4"><i class="bi bi-plus-circle"></i> {{ action }} un chat</h4>
 
       <form method="post" enctype="multipart/form-data" id="mainForm">
 
-        <div class="alert alert-info py-2 px-3 text-center small mb-3">
-          <i class="bi bi-phone-landscape"></i> Prenez les photos en <strong>format paysage</strong> (téléphone à l'horizontale)
-        </div>
-
-        <div class="row g-3 mb-3">
-          <div class="col-6 text-center">
-            <label class="form-label d-block fw-semibold">Recto</label>
-            {% if item and item.photo_recto %}
-              <img src="{{ item.photo_recto }}" class="img-thumbnail mb-2" style="max-height:120px">
-            {% endif %}
-            <label class="btn btn-outline-secondary w-100">
-              <i class="bi bi-camera"></i> Choisir
-              <input type="file" name="photo_recto" accept="image/*" capture="environment" class="d-none" id="fileRecto">
-            </label>
-            <small id="labelRecto" class="text-muted d-block text-truncate mt-1">Aucun fichier</small>
-          </div>
-          <div class="col-6 text-center">
-            <label class="form-label d-block fw-semibold">Verso</label>
-            {% if item and item.photo_verso %}
-              <img src="{{ item.photo_verso }}" class="img-thumbnail mb-2" style="max-height:120px">
-            {% endif %}
-            <label class="btn btn-outline-secondary w-100">
-              <i class="bi bi-camera"></i> Choisir
-              <input type="file" name="photo_verso" accept="image/*" capture="environment" class="d-none" id="fileVerso">
-            </label>
-            <small id="labelVerso" class="text-muted d-block text-truncate mt-1">Aucun fichier</small>
-          </div>
+        <div class="mb-3 text-center">
+          <label class="form-label d-block fw-semibold">Photo</label>
+          {% if item and item.photo %}
+            <img src="{{ item.photo }}" class="img-thumbnail mb-2" style="max-height:200px">
+          {% endif %}
+          <label class="btn btn-outline-secondary w-100">
+            <i class="bi bi-image"></i> Choisir une photo
+            <input type="file" name="photo" accept="image/*" class="d-none" id="filePhoto">
+          </label>
+          <small id="labelPhoto" class="text-muted d-block mt-1">Aucun fichier</small>
         </div>
 
         <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Nom / Surnom</label>
+            <input type="text" name="nom" class="form-control" placeholder="ex: Moustache"
+                   value="{{ item.nom if item else '' }}">
+          </div>
           <div class="col-6">
-            <label class="form-label">Année</label>
-            <input type="text" name="annee" class="form-control" placeholder="ex: 1985"
-                   value="{{ item.annee if item else '' }}" inputmode="numeric">
+            <label class="form-label">Couleur / Robe</label>
+            <input type="text" name="couleur" class="form-control" placeholder="ex: Tigré roux"
+                   value="{{ item.couleur if item else '' }}">
           </div>
           <div class="col-6">
-            <label class="form-label">Quantité</label>
-            <input type="number" name="quantite" class="form-control" min="1"
-                   value="{{ item.quantite if item else 1 }}">
+            <label class="form-label">Race</label>
+            <input type="text" name="race" class="form-control" placeholder="ex: Européen"
+                   value="{{ item.race if item else '' }}">
           </div>
           <div class="col-12">
-            <label class="form-label">Éditeur</label>
-            <input type="text" name="editeur" class="form-control" placeholder="Nom de l'éditeur"
-                   value="{{ item.editeur if item else '' }}">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Thèmes <small class="text-muted">(séparés par des virgules)</small></label>
-            <input type="text" name="themes" id="themesInput" class="form-control"
-                   placeholder="ex: Animal, Nature, Art..."
-                   value="{{ item.themes if item else '' }}">
-            <div id="tagPreview" class="mt-1 d-flex flex-wrap gap-1"></div>
-          </div>
-          <div class="col-12">
-            <label class="form-label">Pays</label>
-            <input type="text" name="pays" class="form-control" placeholder="Pays d'origine"
-                   value="{{ item.pays if item else '' }}">
-          </div>
-          <div class="col-12">
-            <label class="form-label">État</label>
-            <select name="etat" class="form-select">
+            <label class="form-label">Sexe</label>
+            <select name="sexe" class="form-select">
               <option value="">— Sélectionner —</option>
-              {% for e in ['Neuf', 'Très bon', 'Bon', 'Moyen', 'Mauvais'] %}
-                <option value="{{ e }}" {% if item and item.etat == e %}selected{% endif %}>{{ e }}</option>
+              {% for s in ['Mâle', 'Femelle', 'Inconnu'] %}
+                <option value="{{ s }}" {% if item and item.sexe == s %}selected{% endif %}>{{ s }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="col-12">
+            <label class="form-label">Propriétaire</label>
+            <input type="text" name="proprietaire" class="form-control" placeholder="Nom du propriétaire"
+                   value="{{ item.proprietaire if item else '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Téléphone du propriétaire</label>
+            <input type="tel" name="tel_proprietaire" class="form-control" placeholder="ex: 06 12 34 56 78"
+                   value="{{ item.tel_proprietaire if item else '' }}" inputmode="tel">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Comportement <small class="text-muted">(séparés par des virgules)</small></label>
+            <input type="text" name="comportements" id="comportementsInput" class="form-control"
+                   placeholder="ex: Sociable, Craintif, Joueur..."
+                   value="{{ item.comportements if item else '' }}">
+            <div id="tagPreview" class="mt-1 d-flex flex-wrap gap-1"></div>
+          </div>
+          <div class="col-12">
             <label class="form-label">Notes</label>
             <textarea name="notes" class="form-control" rows="3"
-                      placeholder="Remarques, provenance, anecdote...">{{ item.notes if item else '' }}</textarea>
+                      placeholder="Observations, habitudes, zone de vie...">{{ item.notes if item else '' }}</textarea>
           </div>
         </div>
 
@@ -95,31 +83,20 @@
 </div>
 
 <script>
-// Nom du fichier sélectionné
-document.getElementById('fileRecto').addEventListener('change', function() {
-  document.getElementById('labelRecto').textContent = this.files[0]?.name || 'Aucun fichier';
-});
-document.getElementById('fileVerso').addEventListener('change', function() {
-  document.getElementById('labelVerso').textContent = this.files[0]?.name || 'Aucun fichier';
+document.getElementById('filePhoto').addEventListener('change', function() {
+  document.getElementById('labelPhoto').textContent = this.files[0]?.name || 'Aucun fichier';
 });
 
-// Aperçu des tags en temps réel
-const themesInput = document.getElementById('themesInput');
+const input = document.getElementById('comportementsInput');
 const tagPreview = document.getElementById('tagPreview');
-
 function updateTags() {
-  const tags = themesInput.value.split(',').map(t => t.trim()).filter(t => t);
-  tagPreview.innerHTML = tags.map(t =>
-    `<span class="badge badge-theme text-white">${t}</span>`
-  ).join('');
+  const tags = input.value.split(',').map(t => t.trim()).filter(t => t);
+  tagPreview.innerHTML = tags.map(t => `<span class="badge badge-tag text-white">${t}</span>`).join('');
 }
-if (themesInput) {
-  themesInput.addEventListener('input', updateTags);
-  updateTags();
-}
+input.addEventListener('input', updateTags);
+updateTags();
 
 const MAX_SIZE_MB = 3;
-
 function compressFile(file) {
   return new Promise(function(resolve) {
     if (!file || file.size < MAX_SIZE_MB * 1024 * 1024) { resolve(file); return; }
@@ -137,8 +114,7 @@ function compressFile(file) {
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
           canvas.toBlob(function(blob) {
-            if (blob) resolve(new File([blob], file.name, {type:'image/jpeg'}));
-            else resolve(file);
+            resolve(blob ? new File([blob], file.name, {type:'image/jpeg'}) : file);
           }, 'image/jpeg', 0.80);
         } catch(e) { resolve(file); }
       };
@@ -155,17 +131,10 @@ document.getElementById('mainForm').addEventListener('submit', async function(e)
 
   const form = e.target;
   const data = new FormData(form);
-
-  // Compresser uniquement si > 3 Mo
-  const rectoInput = document.getElementById('fileRecto');
-  const versoInput = document.getElementById('fileVerso');
-  if (rectoInput.files[0]) {
-    const compressed = await compressFile(rectoInput.files[0]);
-    data.set('photo_recto', compressed);
-  }
-  if (versoInput.files[0]) {
-    const compressed = await compressFile(versoInput.files[0]);
-    data.set('photo_verso', compressed);
+  const photoInput = document.getElementById('filePhoto');
+  if (photoInput.files[0]) {
+    const compressed = await compressFile(photoInput.files[0]);
+    data.set('photo', compressed);
   }
 
   setTimeout(function() {

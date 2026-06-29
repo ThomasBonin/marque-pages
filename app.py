@@ -28,16 +28,16 @@ def init_db():
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS marque_pages (
+                CREATE TABLE IF NOT EXISTS chats (
                     id SERIAL PRIMARY KEY,
-                    photo_recto TEXT,
-                    photo_verso TEXT,
-                    annee TEXT,
-                    editeur TEXT,
-                    themes TEXT,
-                    pays TEXT,
-                    etat TEXT,
-                    quantite INTEGER DEFAULT 1,
+                    photo TEXT,
+                    nom TEXT,
+                    couleur TEXT,
+                    race TEXT,
+                    sexe TEXT,
+                    proprietaire TEXT,
+                    tel_proprietaire TEXT,
+                    comportements TEXT,
                     notes TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -60,7 +60,7 @@ def upload_to_cloudinary(file_storage):
         buf.seek(0)
         result = cloudinary.uploader.upload(
             buf,
-            folder="marque-pages",
+            folder="chats-voisinage",
             transformation={"quality": "auto", "fetch_format": "auto"},
         )
         return result["secure_url"]
@@ -77,23 +77,20 @@ def upload_field(field_name, fallback=None):
     return fallback
 
 
-def parse_themes(raw):
-    """Nettoie et retourne une liste de thèmes depuis une chaîne."""
+def parse_tags(raw):
     return [t.strip() for t in raw.replace(";", ",").split(",") if t.strip()]
 
 
-def themes_to_str(raw):
-    return ", ".join(parse_themes(raw))
+def tags_to_str(raw):
+    return ", ".join(parse_tags(raw))
 
 
 @app.route("/")
 def index():
     search = request.args.get("q", "").strip()
-    annee = request.args.get("annee", "").strip()
-    editeur = request.args.get("editeur", "").strip()
-    theme = request.args.get("theme", "").strip()
-    pays = request.args.get("pays", "").strip()
-    etat = request.args.get("etat", "").strip()
+    race = request.args.get("race", "").strip()
+    sexe = request.args.get("sexe", "").strip()
+    comportement = request.args.get("comportement", "").strip()
     page = max(1, int(request.args.get("page", 1)))
     per_page = 24
 
@@ -103,59 +100,46 @@ def index():
             params = []
 
             if search:
-                conditions.append("(editeur ILIKE %s OR themes ILIKE %s OR pays ILIKE %s OR notes ILIKE %s)")
-                params += [f"%{search}%"] * 4
-            if annee:
-                conditions.append("annee = %s")
-                params.append(annee)
-            if editeur:
-                conditions.append("editeur ILIKE %s")
-                params.append(f"%{editeur}%")
-            if theme:
-                conditions.append("themes ILIKE %s")
-                params.append(f"%{theme}%")
-            if pays:
-                conditions.append("pays ILIKE %s")
-                params.append(f"%{pays}%")
-            if etat:
-                conditions.append("etat = %s")
-                params.append(etat)
+                conditions.append("(nom ILIKE %s OR couleur ILIKE %s OR race ILIKE %s OR proprietaire ILIKE %s OR notes ILIKE %s)")
+                params += [f"%{search}%"] * 5
+            if race:
+                conditions.append("race ILIKE %s")
+                params.append(f"%{race}%")
+            if sexe:
+                conditions.append("sexe = %s")
+                params.append(sexe)
+            if comportement:
+                conditions.append("comportements ILIKE %s")
+                params.append(f"%{comportement}%")
 
             where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-            cur.execute(f"SELECT COUNT(*) as n FROM marque_pages {where}", params)
+            cur.execute(f"SELECT COUNT(*) as n FROM chats {where}", params)
             total = cur.fetchone()["n"]
 
             cur.execute(
-                f"SELECT * FROM marque_pages {where} ORDER BY annee DESC, editeur ASC LIMIT %s OFFSET %s",
+                f"SELECT * FROM chats {where} ORDER BY nom ASC LIMIT %s OFFSET %s",
                 params + [per_page, (page - 1) * per_page]
             )
             items = cur.fetchall()
 
-            cur.execute("SELECT DISTINCT annee FROM marque_pages WHERE annee != '' ORDER BY annee DESC")
-            annees = [r["annee"] for r in cur.fetchall()]
+            cur.execute("SELECT DISTINCT race FROM chats WHERE race != '' ORDER BY race")
+            races = [r["race"] for r in cur.fetchall()]
 
-            cur.execute("SELECT DISTINCT editeur FROM marque_pages WHERE editeur != '' ORDER BY editeur")
-            editeurs = [r["editeur"] for r in cur.fetchall()]
-
-            cur.execute("SELECT DISTINCT pays FROM marque_pages WHERE pays != '' ORDER BY pays")
-            pays_list = [r["pays"] for r in cur.fetchall()]
-
-            # Thèmes : extraire tous les tags individuels
-            cur.execute("SELECT themes FROM marque_pages WHERE themes != ''")
-            all_themes = set()
+            cur.execute("SELECT comportements FROM chats WHERE comportements != ''")
+            all_tags = set()
             for r in cur.fetchall():
-                for t in parse_themes(r["themes"]):
-                    all_themes.add(t)
-            themes = sorted(all_themes)
+                for t in parse_tags(r["comportements"]):
+                    all_tags.add(t)
+            comportements = sorted(all_tags)
 
     total_pages = (total + per_page - 1) // per_page
 
     return render_template("index.html",
         items=items, total=total, page=page, total_pages=total_pages,
-        annees=annees, editeurs=editeurs, themes=themes, pays_list=pays_list,
-        search=search, annee=annee, editeur=editeur, theme=theme, pays=pays, etat=etat,
-        parse_themes=parse_themes
+        races=races, comportements=comportements,
+        search=search, race=race, sexe=sexe, comportement=comportement,
+        parse_tags=parse_tags
     )
 
 
@@ -165,20 +149,20 @@ def ajouter():
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO marque_pages (photo_recto, photo_verso, annee, editeur, themes, pays, etat, quantite, notes)
+                    INSERT INTO chats (photo, nom, couleur, race, sexe, proprietaire, tel_proprietaire, comportements, notes)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    upload_field("photo_recto"),
-                    upload_field("photo_verso"),
-                    request.form.get("annee", "").strip(),
-                    request.form.get("editeur", "").strip(),
-                    themes_to_str(request.form.get("themes", "")),
-                    request.form.get("pays", "").strip(),
-                    request.form.get("etat", ""),
-                    int(request.form.get("quantite", 1) or 1),
+                    upload_field("photo"),
+                    request.form.get("nom", "").strip(),
+                    request.form.get("couleur", "").strip(),
+                    request.form.get("race", "").strip(),
+                    request.form.get("sexe", ""),
+                    request.form.get("proprietaire", "").strip(),
+                    request.form.get("tel_proprietaire", "").strip(),
+                    tags_to_str(request.form.get("comportements", "")),
                     request.form.get("notes", "").strip(),
                 ))
-        flash("Marque-page ajouté avec succès !", "success")
+        flash("Chat ajouté avec succès !", "success")
         return redirect(url_for("index"))
 
     return render_template("form.html", item=None, action="Ajouter")
@@ -188,19 +172,19 @@ def ajouter():
 def fiche(item_id):
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT * FROM marque_pages WHERE id = %s", (item_id,))
+            cur.execute("SELECT * FROM chats WHERE id = %s", (item_id,))
             item = cur.fetchone()
     if not item:
-        flash("Marque-page introuvable.", "danger")
+        flash("Chat introuvable.", "danger")
         return redirect(url_for("index"))
-    return render_template("fiche.html", item=item, parse_themes=parse_themes)
+    return render_template("fiche.html", item=item, parse_tags=parse_tags)
 
 
 @app.route("/modifier/<int:item_id>", methods=["GET", "POST"])
 def modifier(item_id):
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT * FROM marque_pages WHERE id = %s", (item_id,))
+            cur.execute("SELECT * FROM chats WHERE id = %s", (item_id,))
             item = cur.fetchone()
     if not item:
         return redirect(url_for("index"))
@@ -209,21 +193,22 @@ def modifier(item_id):
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    UPDATE marque_pages SET photo_recto=%s, photo_verso=%s, annee=%s, editeur=%s,
-                    themes=%s, pays=%s, etat=%s, quantite=%s, notes=%s WHERE id=%s
+                    UPDATE chats SET photo=%s, nom=%s, couleur=%s, race=%s, sexe=%s,
+                    proprietaire=%s, tel_proprietaire=%s, comportements=%s, notes=%s
+                    WHERE id=%s
                 """, (
-                    upload_field("photo_recto", item["photo_recto"]),
-                    upload_field("photo_verso", item["photo_verso"]),
-                    request.form.get("annee", "").strip(),
-                    request.form.get("editeur", "").strip(),
-                    themes_to_str(request.form.get("themes", "")),
-                    request.form.get("pays", "").strip(),
-                    request.form.get("etat", ""),
-                    int(request.form.get("quantite", 1) or 1),
+                    upload_field("photo", item["photo"]),
+                    request.form.get("nom", "").strip(),
+                    request.form.get("couleur", "").strip(),
+                    request.form.get("race", "").strip(),
+                    request.form.get("sexe", ""),
+                    request.form.get("proprietaire", "").strip(),
+                    request.form.get("tel_proprietaire", "").strip(),
+                    tags_to_str(request.form.get("comportements", "")),
                     request.form.get("notes", "").strip(),
                     item_id,
                 ))
-        flash("Marque-page modifié.", "success")
+        flash("Fiche modifiée.", "success")
         return redirect(url_for("fiche", item_id=item_id))
 
     return render_template("form.html", item=item, action="Modifier")
@@ -233,173 +218,30 @@ def modifier(item_id):
 def supprimer(item_id):
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM marque_pages WHERE id = %s", (item_id,))
-    flash("Marque-page supprimé.", "warning")
+            cur.execute("DELETE FROM chats WHERE id = %s", (item_id,))
+    flash("Chat supprimé.", "warning")
     return redirect(url_for("index"))
-
-
-@app.route("/export/pdf")
-def export_pdf():
-    import requests as req
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.units import cm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Image as RLImage, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet
-    from flask import Response
-    import io as _io
-
-    search = request.args.get("q", "").strip()
-    annee = request.args.get("annee", "").strip()
-    editeur = request.args.get("editeur", "").strip()
-    theme = request.args.get("theme", "").strip()
-    pays = request.args.get("pays", "").strip()
-    etat = request.args.get("etat", "").strip()
-
-    with get_db() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            conditions = []
-            params = []
-            if search:
-                conditions.append("(editeur ILIKE %s OR themes ILIKE %s OR pays ILIKE %s OR notes ILIKE %s)")
-                params += [f"%{search}%"] * 4
-            if annee:
-                conditions.append("annee = %s"); params.append(annee)
-            if editeur:
-                conditions.append("editeur ILIKE %s"); params.append(f"%{editeur}%")
-            if theme:
-                conditions.append("themes ILIKE %s"); params.append(f"%{theme}%")
-            if pays:
-                conditions.append("pays ILIKE %s"); params.append(f"%{pays}%")
-            if etat:
-                conditions.append("etat = %s"); params.append(etat)
-            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-            cur.execute(f"SELECT * FROM marque_pages {where} ORDER BY annee DESC, editeur ASC LIMIT 100", params)
-            rows = cur.fetchall()
-
-    buf = _io.BytesIO()
-    styles = getSampleStyleSheet()
-    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
-    story = []
-    W = 8.5*cm
-
-    def fetch_image(url, width):
-        try:
-            r = req.get(url, timeout=8)
-            img_buf = _io.BytesIO(r.content)
-            img = RLImage(img_buf, width=width, height=width*0.6)
-            return img
-        except Exception:
-            return Paragraph("(photo indisponible)", styles["Normal"])
-
-    for num, item in enumerate(rows, 1):
-        # Photos
-        recto = fetch_image(item["photo_recto"], W) if item["photo_recto"] else Paragraph("—", styles["Normal"])
-        verso = fetch_image(item["photo_verso"], W) if item["photo_verso"] else Paragraph("—", styles["Normal"])
-
-        # Infos
-        infos = f"""<b>#{num} — {item['editeur'] or '—'}</b><br/>
-Année : {item['annee'] or '—'}<br/>
-Thèmes : {item['themes'] or '—'}<br/>
-Pays : {item['pays'] or '—'}<br/>
-État : {item['etat'] or '—'} | Qté : {item['quantite']}<br/>
-{('<i>' + item['notes'] + '</i>') if item['notes'] else ''}"""
-
-        data = [
-            [recto, verso],
-            [Paragraph(infos, styles["Normal"]), ""]
-        ]
-        t = Table(data, colWidths=[W, W])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f5f0eb")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#c9956a")),
-            ("INNERGRID", (0, 0), (-1, 0), 0.5, colors.HexColor("#ddd")),
-            ("SPAN", (0, 1), (1, 1)),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-            ("PADDING", (0, 0), (-1, -1), 6),
-        ]))
-        story.append(t)
-        story.append(Spacer(1, 0.4*cm))
-
-    doc.build(story)
-    buf.seek(0)
-    return Response(buf, mimetype="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=marque-pages.pdf"})
-
-
-@app.route("/export")
-def export():
-    import csv
-    import io as _io
-    from flask import Response
-
-    search = request.args.get("q", "").strip()
-    annee = request.args.get("annee", "").strip()
-    editeur = request.args.get("editeur", "").strip()
-    theme = request.args.get("theme", "").strip()
-    pays = request.args.get("pays", "").strip()
-    etat = request.args.get("etat", "").strip()
-
-    with get_db() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            conditions = []
-            params = []
-            if search:
-                conditions.append("(editeur ILIKE %s OR themes ILIKE %s OR pays ILIKE %s OR notes ILIKE %s)")
-                params += [f"%{search}%"] * 4
-            if annee:
-                conditions.append("annee = %s"); params.append(annee)
-            if editeur:
-                conditions.append("editeur ILIKE %s"); params.append(f"%{editeur}%")
-            if theme:
-                conditions.append("themes ILIKE %s"); params.append(f"%{theme}%")
-            if pays:
-                conditions.append("pays ILIKE %s"); params.append(f"%{pays}%")
-            if etat:
-                conditions.append("etat = %s"); params.append(etat)
-            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-            cur.execute(f"SELECT annee, editeur, themes, pays, etat, quantite, notes FROM marque_pages {where} ORDER BY annee DESC, editeur ASC", params)
-            rows = cur.fetchall()
-
-    buf = _io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow(["Année", "Éditeur", "Thèmes", "Pays", "État", "Quantité", "Notes"])
-    for r in rows:
-        writer.writerow([r["annee"], r["editeur"], r["themes"], r["pays"], r["etat"], r["quantite"], r["notes"]])
-
-    buf.seek(0)
-    return Response(
-        "﻿" + buf.getvalue(),  # BOM pour Excel
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=marque-pages.csv"}
-    )
 
 
 @app.route("/stats")
 def stats():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT COALESCE(SUM(quantite),0) as n FROM marque_pages")
+            cur.execute("SELECT COUNT(*) as n FROM chats")
             total = cur.fetchone()["n"]
-            cur.execute("SELECT COUNT(*) as n FROM marque_pages")
-            nb_fiches = cur.fetchone()["n"]
-            cur.execute("SELECT annee, COUNT(*) as n FROM marque_pages WHERE annee != '' GROUP BY annee ORDER BY annee")
-            par_annee = cur.fetchall()
-            cur.execute("SELECT pays, COUNT(*) as n FROM marque_pages WHERE pays != '' GROUP BY pays ORDER BY n DESC LIMIT 15")
-            par_pays = cur.fetchall()
-            cur.execute("SELECT editeur, COUNT(*) as n FROM marque_pages WHERE editeur != '' GROUP BY editeur ORDER BY n DESC LIMIT 15")
-            par_editeur = cur.fetchall()
-            # Compter les thèmes individuels
-            cur.execute("SELECT themes FROM marque_pages WHERE themes != ''")
-            theme_count = {}
+            cur.execute("SELECT race, COUNT(*) as n FROM chats WHERE race != '' GROUP BY race ORDER BY n DESC LIMIT 15")
+            par_race = cur.fetchall()
+            cur.execute("SELECT sexe, COUNT(*) as n FROM chats WHERE sexe != '' GROUP BY sexe")
+            par_sexe = cur.fetchall()
+            cur.execute("SELECT comportements FROM chats WHERE comportements != ''")
+            tag_count = {}
             for r in cur.fetchall():
-                for t in parse_themes(r["themes"]):
-                    theme_count[t] = theme_count.get(t, 0) + 1
-            par_theme = sorted(theme_count.items(), key=lambda x: -x[1])[:15]
+                for t in parse_tags(r["comportements"]):
+                    tag_count[t] = tag_count.get(t, 0) + 1
+            par_comportement = sorted(tag_count.items(), key=lambda x: -x[1])[:15]
 
-    return render_template("stats.html", total=total, nb_fiches=nb_fiches,
-        par_annee=par_annee, par_theme=par_theme, par_pays=par_pays, par_editeur=par_editeur)
+    return render_template("stats.html", total=total,
+        par_race=par_race, par_sexe=par_sexe, par_comportement=par_comportement)
 
 
 if __name__ == "__main__":
